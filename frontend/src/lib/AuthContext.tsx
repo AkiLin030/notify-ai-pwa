@@ -37,14 +37,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (provider: 'google' | 'github') => {
+    const email = window.prompt("請輸入您的登入 Email (展示用途):", "user@gmail.com");
+    if (!email) return;
+    const name = email.split('@')[0];
+
     setLoading(true);
     // Simulate API call and OAuth redirect delay
     setTimeout(() => {
       const mockUser = {
-        id: 'user_12345',
-        name: 'Test User',
-        email: 'test@example.com',
-        image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=TestUser'
+        id: 'user_' + Date.now(),
+        name: name,
+        email: email,
+        image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`
       };
       setUser(mockUser);
       localStorage.setItem('mockUser', JSON.stringify(mockUser));

@@ -41,15 +41,6 @@ export default function Home() {
           >
             使用 Google 登入
           </Button>
-          <Button 
-            fullWidth 
-            size="lg" 
-            variant="secondary"
-            onClick={() => login("github")}
-            icon={<MessageSquare size={20} />}
-          >
-            使用 GitHub 登入
-          </Button>
         </div>
       </div>
     </main>

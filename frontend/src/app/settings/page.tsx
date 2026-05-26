@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/Button";
 import styles from "./settings.module.css";
-import { Bell, Clock, Settings, MessageSquare, VolumeX, ListTodo, ArrowLeft, Trash2, Moon, Sun, Palette } from "lucide-react";
+import { Bell, Clock, Settings, MessageSquare, VolumeX, ListTodo, ArrowLeft, Trash2, Moon, Sun, Palette, LogOut } from "lucide-react";
 
 type Schedule = {
   frequency: "minute" | "hour" | "day" | "week" | "month" | "once";
@@ -32,12 +32,12 @@ const TASK_PRESETS = [
 ];
 
 export default function SettingsPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
 
   const [settings, setSettings] = useState<SettingsType>({
     personalitySelect: "custom",
-    personalityCustom: "有點傲嬌但其實很關心人的貓娘",
+    personalityCustom: "",
     task: "",
     schedules: [{ frequency: "day", time: "09:00" }],
     quietHoursEnabled: true,
@@ -158,8 +158,20 @@ export default function SettingsPage() {
             <span>返回對話</span>
           </button>
         </div>
-        <div className={styles.brand}>
-          <h2>帳戶設定</h2>
+        <div className={styles.brand} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+            {user?.image && <img src={user.image} alt="Avatar" style={{ width: 24, height: 24, borderRadius: '50%' }} />}
+            <span style={{ fontSize: '0.9rem' }}>{user?.email}</span>
+          </div>
+          <button 
+            onClick={() => {
+              logout();
+              router.push("/");
+            }} 
+            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.9rem' }}
+          >
+            <LogOut size={16} /> 登出
+          </button>
         </div>
       </header>
 
@@ -254,7 +266,7 @@ export default function SettingsPage() {
                 <label>請描述你想要的 AI 個性</label>
                 <textarea 
                   className={styles.textarea} 
-                  placeholder="例如：像是一個碎碎念但很關心人的老奶奶"
+                  placeholder="ex. 有點傲嬌但其實很關心人的管家"
                   value={settings.personalityCustom}
                   onChange={(e) => setSettings({ ...settings, personalityCustom: e.target.value })}
                 />
@@ -426,7 +438,7 @@ export default function SettingsPage() {
                     checked={settings.channels.email}
                     onChange={(e) => setSettings({ ...settings, channels: { ...settings.channels, email: e.target.checked }})}
                   />
-                  Email (發送至 {user.email})
+                  Email
                 </label>
                 <label className={styles.checkboxLabel}>
                   <input 
