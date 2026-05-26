@@ -21,7 +21,23 @@ type SettingsType = {
   quietHours: { start: string; end: string };
   channels: { email: boolean; discord: boolean; webpush: boolean };
   discordWebhook: string;
+  webpushSubscription?: any;
 };
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 const TASK_PRESETS = [
   { label: "喝水", prompt: "該提醒用戶喝水了，請用語氣嚴厲的方式告訴他多喝水對身體好" },
@@ -111,6 +127,42 @@ export default function SettingsPage() {
       return "已勾選 Discord 通知，請填寫 Webhook URL。";
     }
     return "";
+  };
+
+  const handleWebPushToggle = async (checked: boolean) => {
+    if (!checked) {
+      setSettings({ ...settings, channels: { ...settings.channels, webpush: false }});
+      return;
+    }
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert("此瀏覽器不支援 Web Push。");
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert("您拒絕了通知權限。");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "")
+      });
+
+      setSettings({
+        ...settings,
+        channels: { ...settings.channels, webpush: true },
+        webpushSubscription: subscription
+      });
+      alert("成功啟用 Web Push！");
+    } catch (err) {
+      console.error("Web Push Error", err);
+      alert("訂閱 Web Push 失敗");
+    }
   };
 
   const handleSave = async () => {
@@ -444,9 +496,9 @@ export default function SettingsPage() {
                   <input 
                     type="checkbox" 
                     checked={settings.channels.webpush}
-                    onChange={(e) => setSettings({ ...settings, channels: { ...settings.channels, webpush: e.target.checked }})}
+                    onChange={(e) => handleWebPushToggle(e.target.checked)}
                   />
-                  Web Push (瀏覽器/PWA推播)
+                  系統推播 (Web Push)
                 </label>
                 <label className={styles.checkboxLabel}>
                   <input 

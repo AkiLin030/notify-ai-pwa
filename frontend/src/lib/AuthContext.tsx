@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+import { useGoogleLogin } from '@react-oauth/google';
+
 type User = {
   id: string;
   name: string;
@@ -28,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for mock session
+    // Check local storage for session
     const storedUser = localStorage.getItem('mockUser');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -36,24 +38,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = (provider: 'google' | 'github') => {
-    const email = window.prompt("請輸入您的登入 Email (展示用途):", "user@gmail.com");
-    if (!email) return;
-    const name = email.split('@')[0];
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        }).then(res => res.json());
 
-    setLoading(true);
-    // Simulate API call and OAuth redirect delay
-    setTimeout(() => {
-      const mockUser = {
-        id: 'user_' + Date.now(),
-        name: name,
-        email: email,
-        image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`
-      };
-      setUser(mockUser);
-      localStorage.setItem('mockUser', JSON.stringify(mockUser));
-      setLoading(false);
-    }, 1000);
+        const realUser: User = {
+          id: userInfo.sub,
+          name: userInfo.name,
+          email: userInfo.email,
+          image: userInfo.picture,
+        };
+        setUser(realUser);
+        localStorage.setItem('mockUser', JSON.stringify(realUser));
+      } catch (err) {
+        console.error("Google login failed", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: errorResponse => console.error(errorResponse),
+  });
+
+  const login = (provider: 'google' | 'github') => {
+    if (provider === 'google') {
+      googleLogin();
+    }
   };
 
   const logout = () => {

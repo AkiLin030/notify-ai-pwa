@@ -3,10 +3,18 @@ Transform: AWS::Serverless-2016-10-31
 Description: AI Reminder PWA - Full Stack Infrastructure
 
 Parameters:
+  VapidPublicKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ai-reminder/vapid-public-key
+    Description: VAPID Public Key stored in SSM
+  VapidPrivateKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ai-reminder/vapid-private-key
+    Description: VAPID Private Key stored in SSM
   GroqApiKey:
-    Type: String
-    Description: API Key for Groq API to generate AI messages
-    NoEcho: true
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ai-reminder/groq-api-key
+    Description: Groq API Key stored in SSM
 
 Resources:
   # ==========================================
@@ -73,8 +81,8 @@ Resources:
           USERS_TABLE: !Ref UsersTable
           SNS_TOPIC_ARN: !Ref EmailNotificationTopic
           GROQ_API_KEY: !Ref GroqApiKey
-          VAPID_PUBLIC_KEY: "PLACEHOLDER_PUBLIC"
-          VAPID_PRIVATE_KEY: "PLACEHOLDER_PRIVATE"
+          VAPID_PUBLIC_KEY: !Ref VapidPublicKey
+          VAPID_PRIVATE_KEY: !Ref VapidPrivateKey
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref UsersTable
