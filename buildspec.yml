@@ -1,0 +1,22 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing frontend dependencies..."
+      - cd frontend
+      - npm install
+  build:
+    commands:
+      - echo "Building Next.js app for static export..."
+      - npm run build
+  post_build:
+    commands:
+      - echo "Build completed."
+      
+artifacts:
+  files:
+    - '**/*'
+  base-directory: frontend/out

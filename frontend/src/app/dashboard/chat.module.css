@@ -1,0 +1,233 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+  overflow: hidden; /* Prevent body scrolling, let chat area scroll */
+}
+
+.header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background-color: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.settingsLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.settingsLink:hover {
+  color: var(--primary);
+}
+
+.chatArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  scroll-behavior: smooth;
+}
+
+.messageWrapper {
+  display: flex;
+  gap: 1rem;
+  max-width: 95%;
+  animation: slideIn 0.3s ease-out;
+}
+
+.messageWrapper.ai {
+  align-self: flex-start;
+}
+
+.messageWrapper.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+
+.messageBubble {
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  position: relative;
+  white-space: pre-wrap;
+}
+
+.ai .messageBubble {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-top-left-radius: 0.25rem;
+  color: var(--foreground);
+}
+
+.user .messageBubble {
+  background: var(--gradient-primary);
+  border-top-right-radius: 0.25rem;
+  color: white;
+  font-size: 2rem; /* Emojis are bigger */
+  padding: 0.5rem 1rem;
+}
+
+.timestamp {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.ai .timestamp {
+  text-align: left;
+}
+
+.user .timestamp {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.reactionContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.addReactionBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0;
+  font-size: 1rem;
+}
+
+.messageWrapper:hover .addReactionBtn {
+  opacity: 1;
+}
+
+.addReactionBtn:hover {
+  background: rgba(138, 43, 226, 0.2);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.reactionPicker {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 2rem;
+  padding: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  margin-top: 0.5rem;
+  animation: slideIn 0.2s ease-out;
+}
+
+.reactionEmoji {
+  cursor: pointer;
+  font-size: 1.25rem;
+  transition: transform 0.1s;
+  padding: 0.25rem;
+}
+
+.reactionEmoji:hover {
+  transform: scale(1.2);
+}
+
+.reactionsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.reactionBadge {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: var(--text-secondary);
+}

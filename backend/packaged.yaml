@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AI Reminder PWA - Full Stack Infrastructure
+Parameters:
+  GroqApiKey:
+    Type: String
+    Description: API Key for Groq API to generate AI messages
+    NoEcho: true
+Resources:
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: AiReminderUsers
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: userId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: userId
+        KeyType: HASH
+  EmailNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: AiReminderEmailTopic
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: 
+        s3://notify-ai-backend-bucket-jia-yu-2026/afa6d0b97957b611c923cb080031031e
+      Handler: src/api.handler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Environment:
+        Variables:
+          USERS_TABLE:
+            Ref: UsersTable
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: UsersTable
+      Events:
+        ProxyApi:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+  SchedulerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: 
+        s3://notify-ai-backend-bucket-jia-yu-2026/afa6d0b97957b611c923cb080031031e
+      Handler: src/scheduler.handler
+      Runtime: nodejs20.x
+      Timeout: 60
+      Architectures:
+      - x86_64
+      Environment:
+        Variables:
+          USERS_TABLE:
+            Ref: UsersTable
+          SNS_TOPIC_ARN:
+            Ref: EmailNotificationTopic
+          GROQ_API_KEY:
+            Ref: GroqApiKey
+          VAPID_PUBLIC_KEY: PLACEHOLDER_PUBLIC
+          VAPID_PRIVATE_KEY: PLACEHOLDER_PRIVATE
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: UsersTable
+      - SNSPublishMessagePolicy:
+          TopicName:
+            Fn::GetAtt:
+            - EmailNotificationTopic
+            - TopicName
+      Events:
+        HourlySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Name: HourlyReminderTrigger
+            Description: Triggers the reminder scheduler every hour
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: FrontendBucket
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action: s3:GetObject
+          Resource:
+            Fn::Sub: ${FrontendBucket.Arn}/*
+  SchedulerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: SchedulerLambdaErrorAlarm
+      AlarmDescription: Triggers if Scheduler Lambda has errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+      - Name: FunctionName
+        Value:
+          Ref: SchedulerFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+      - Ref: EmailNotificationTopic
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: 
+        https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  FrontendUrl:
+    Description: S3 Website URL
+    Value:
+      Fn::GetAtt:
+      - FrontendBucket
+      - WebsiteURL
