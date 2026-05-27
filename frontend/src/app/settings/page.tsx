@@ -10,6 +10,7 @@ import { Bell, Clock, Settings, MessageSquare, VolumeX, ListTodo, ArrowLeft, Tra
 type Schedule = {
   frequency: "minute" | "hour" | "day" | "week" | "month" | "once";
   time: string;
+  enabled?: boolean;
 };
 
 type SettingsType = {
@@ -55,7 +56,7 @@ export default function SettingsPage() {
     personalitySelect: "custom",
     personalityCustom: "",
     task: "",
-    schedules: [{ frequency: "day", time: "09:00" }],
+    schedules: [{ frequency: "day", time: "09:00", enabled: true }],
     quietHoursEnabled: true,
     quietHours: { start: "22:00", end: "07:00" },
     channels: { email: true, discord: false, webpush: false },
@@ -369,7 +370,19 @@ export default function SettingsPage() {
               <p className={styles.description}>設定發送提醒的頻率與時間。</p>
               
               {settings.schedules.map((schedule, idx) => (
-                <div key={idx} className={styles.flexRow}>
+                <div key={idx} className={styles.flexRow} style={{ opacity: schedule.enabled === false ? 0.6 : 1, transition: "opacity 0.2s" }}>
+                  <label className={styles.switch} style={{ alignSelf: 'flex-end', marginBottom: '0.75rem', marginRight: '0.5rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={schedule.enabled !== false}
+                      onChange={(e) => {
+                        const newSchedules = [...settings.schedules];
+                        newSchedules[idx].enabled = e.target.checked;
+                        setSettings({ ...settings, schedules: newSchedules });
+                      }}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
                   <div className={styles.inputGroup} style={{marginBottom: 0}}>
                     <label>頻率</label>
                     <select 
@@ -423,7 +436,7 @@ export default function SettingsPage() {
                 size="sm" 
                 className={styles.addBtn}
                 onClick={() => {
-                  setSettings({ ...settings, schedules: [...settings.schedules, { frequency: "day", time: "" }]});
+                  setSettings({ ...settings, schedules: [...settings.schedules, { frequency: "day", time: "", enabled: true }]});
                 }}
               >
                 + 新增時段

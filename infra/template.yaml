@@ -4,17 +4,14 @@ Description: AI Reminder PWA - Full Stack Infrastructure
 
 Parameters:
   VapidPublicKey:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /ai-reminder/vapid-public-key
-    Description: VAPID Public Key stored in SSM
+    Type: String
+    Description: VAPID Public Key
   VapidPrivateKey:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /ai-reminder/vapid-private-key
-    Description: VAPID Private Key stored in SSM
+    Type: String
+    Description: VAPID Private Key
   GroqApiKey:
-    Type: AWS::SSM::Parameter::Value<String>
-    Default: /ai-reminder/groq-api-key
-    Description: Groq API Key stored in SSM
+    Type: String
+    Description: Groq API Key
 
 Resources:
   # ==========================================
@@ -54,9 +51,14 @@ Resources:
       Environment:
         Variables:
           USERS_TABLE: !Ref UsersTable
+          SNS_TOPIC_ARN: !Ref EmailNotificationTopic
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - Statement:
+            - Effect: Allow
+              Action: sns:Subscribe
+              Resource: !Ref EmailNotificationTopic
       Events:
         ProxyApi:
           Type: Api
@@ -84,7 +86,7 @@ Resources:
           VAPID_PUBLIC_KEY: !Ref VapidPublicKey
           VAPID_PRIVATE_KEY: !Ref VapidPrivateKey
       Policies:
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt EmailNotificationTopic.TopicName

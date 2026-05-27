@@ -1,6 +1,9 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 
+const { SNSClient, SubscribeCommand } = require("@aws-sdk/client-sns");
+const snsClient = new SNSClient({});
+
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const USERS_TABLE = process.env.USERS_TABLE;
@@ -48,6 +51,22 @@ exports.handler = async (event) => {
           Item: item,
         })
       );
+
+      // Auto-subscribe to SNS if email is enabled
+      if (item.channels?.email && userId.includes("@")) {
+        try {
+          await snsClient.send(
+            new SubscribeCommand({
+              TopicArn: process.env.SNS_TOPIC_ARN,
+              Protocol: "email",
+              Endpoint: userId,
+            })
+          );
+          console.log(`Sent SNS subscription request to ${userId}`);
+        } catch (snsErr) {
+          console.error("Error subscribing to SNS:", snsErr);
+        }
+      }
 
       return {
         statusCode: 200,

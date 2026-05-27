@@ -72,7 +72,7 @@ export default function ChatInterface() {
       .then(res => res.json())
       .then(data => {
         if (data && data.chatHistory) {
-          setMessages(data.chatHistory);
+          setMessages([...INITIAL_MESSAGES, ...data.chatHistory]);
         }
       })
       .catch(console.error);

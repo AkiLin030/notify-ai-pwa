@@ -16,7 +16,7 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "placeholder";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "placeholder";
 webpush.setVapidDetails("mailto:test@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
-async function generateReminderMessage(personality) {
+async function generateReminderMessage(personality, taskText) {
   // Call Groq API
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -26,17 +26,21 @@ async function generateReminderMessage(personality) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "llama3-8b-8192", // Or preferred Groq model
+        model: "llama-3.3-70b-versatile", // Use active Groq model
         messages: [
-          { role: "system", content: `You are an AI assistant with a ${personality} personality. Give a very short, one sentence reminder to the user to take a break or check their tasks.` }
+          { role: "system", content: `You are an AI assistant. Your personality is: ${personality}. Your task is to remind the user about: ${taskText || "take a break or check their tasks"}. Give a very short, one sentence reminder.` }
         ]
       })
     });
     const data = await response.json();
+    if (data.error) {
+       console.error("Groq API error response:", data.error);
+       return `[${personality} mode] ${taskText || "該休息一下了！"}`;
+    }
     return data.choices[0].message.content;
   } catch (err) {
     console.error("Groq API error:", err);
-    return `[${personality} mode] 該休息一下了！`;
+    return `[${personality} mode] ${taskText || "該休息一下了！"}`;
   }
 }
 
@@ -91,6 +95,7 @@ exports.handler = async (event) => {
       // 3. Check Reminder Times (Match specific frequencies)
       const schedules = user.schedules || [];
       const shouldRemind = schedules.some(s => {
+        if (s.enabled === false) return false;
         if (!s.frequency) return false;
         if (s.frequency === "minute") return true;
         if (s.frequency === "hour") return currentMinute === 0;
@@ -114,7 +119,9 @@ exports.handler = async (event) => {
       if (!shouldRemind) continue;
 
       // 4. Generate Message via Groq
-      const message = await generateReminderMessage(user.personality || "gentle");
+      const personality = user.personalitySelect === 'custom' ? user.personalityCustom : (user.personalitySelect || "gentle");
+      const taskText = user.task || "該休息一下了";
+      const message = await generateReminderMessage(personality, taskText);
 
       // 5. Send Notifications
       const channels = user.channels || {};
