@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
+  color-scheme: dark;
   /* Dark Mode as Default for a Sleek Aesthetic */
   --bg-primary: #0a0a0c;
   --bg-secondary: #141418;
@@ -35,6 +36,7 @@
 }
 
 [data-theme="light"] {
+  color-scheme: light;
   --bg-primary: #f8f9fa;
   --bg-secondary: #ffffff;
   --bg-tertiary: #e9ecef;
