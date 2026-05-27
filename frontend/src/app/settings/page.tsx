@@ -371,18 +371,6 @@ export default function SettingsPage() {
               
               {settings.schedules.map((schedule, idx) => (
                 <div key={idx} className={styles.flexRow} style={{ opacity: schedule.enabled === false ? 0.6 : 1, transition: "opacity 0.2s" }}>
-                  <label className={styles.switch} style={{ alignSelf: 'flex-end', marginBottom: '0.75rem', marginRight: '0.5rem' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={schedule.enabled !== false}
-                      onChange={(e) => {
-                        const newSchedules = [...settings.schedules];
-                        newSchedules[idx].enabled = e.target.checked;
-                        setSettings({ ...settings, schedules: newSchedules });
-                      }}
-                    />
-                    <span className={styles.slider}></span>
-                  </label>
                   <div className={styles.inputGroup} style={{marginBottom: 0}}>
                     <label>頻率</label>
                     <select 
@@ -417,6 +405,20 @@ export default function SettingsPage() {
                       />
                     </div>
                   )}
+                  <div style={{ alignSelf: 'flex-end', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+                    <label className={styles.switch}>
+                      <input 
+                        type="checkbox" 
+                        checked={schedule.enabled !== false}
+                        onChange={(e) => {
+                          const newSchedules = [...settings.schedules];
+                          newSchedules[idx].enabled = e.target.checked;
+                          setSettings({ ...settings, schedules: newSchedules });
+                        }}
+                      />
+                      <span className={styles.slider}></span>
+                    </label>
+                  </div>
                   {settings.schedules.length > 1 && (
                     <button 
                       className={styles.removeBtn}
