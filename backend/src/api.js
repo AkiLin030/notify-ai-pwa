@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, GetCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 
 const { SNSClient, SubscribeCommand } = require("@aws-sdk/client-sns");
 const snsClient = new SNSClient({});
@@ -43,6 +43,28 @@ exports.handler = async (event) => {
 
     if (httpMethod === "POST") {
       const data = JSON.parse(body || "{}");
+
+      if (data.action === "addReaction") {
+        const { messageId, emoji } = data;
+        const { Item } = await docClient.send(new GetCommand({ TableName: USERS_TABLE, Key: { userId } }));
+        if (Item && Item.chatHistory) {
+          const newHistory = Item.chatHistory.map(msg => {
+            if (msg.id === messageId) {
+              if (!msg.reactions) msg.reactions = [];
+              if (!msg.reactions.includes(emoji)) msg.reactions.push(emoji);
+            }
+            return msg;
+          });
+          await docClient.send(new UpdateCommand({
+            TableName: USERS_TABLE,
+            Key: { userId },
+            UpdateExpression: "SET chatHistory = :h",
+            ExpressionAttributeValues: { ":h": newHistory }
+          }));
+        }
+        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: "Reaction added" }) };
+      }
+      
       const item = { userId, ...data };
       
       await docClient.send(

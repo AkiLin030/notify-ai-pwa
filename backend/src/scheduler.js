@@ -16,7 +16,16 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "placeholder";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "placeholder";
 webpush.setVapidDetails("mailto:test@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
-async function generateReminderMessage(personality, taskText) {
+async function generateReminderMessage(personality, taskText, chatHistory = []) {
+  let examplesPrompt = "";
+  if (chatHistory && chatHistory.length > 0) {
+    const reactedMessages = chatHistory.filter(m => m.reactions && m.reactions.length > 0 && m.sender === "ai");
+    if (reactedMessages.length > 0) {
+      const topReacted = reactedMessages.slice(-3).map(m => m.content).join("\n\n");
+      examplesPrompt = `以下是過去使用者非常喜歡、給予按讚的歷史回覆範例，請你「學習並模仿」這些範例的語氣與風格來撰寫本次的提醒：\n${topReacted}\n\n`;
+    }
+  }
+
   // Call Groq API
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -28,8 +37,9 @@ async function generateReminderMessage(personality, taskText) {
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile", // Use active Groq model
         messages: [
-          { role: "system", content: `You are an AI assistant. Your personality is: ${personality}. Your task is to remind the user about: ${taskText || "take a break or check their tasks"}. Give a very short, one sentence reminder.` }
-        ]
+          { role: "system", content: `你是一個專屬提醒管家。你的個性是：${personality}。你的任務是提醒使用者：${taskText || "該休息一下或確認代辦事項了"}。\n\n${examplesPrompt}請用這個個性，寫一段生動的提醒訊息（約 1~3 句話，務必使用繁體中文）。請每次都發揮創意，用不同的語氣、情境和詞彙來表達，絕對不要每次都說一樣的話。` }
+        ],
+        temperature: 0.8
       })
     });
     const data = await response.json();
@@ -50,7 +60,11 @@ async function sendDiscord(webhookUrl, message) {
     await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: message })
+      body: JSON.stringify({ 
+        content: message,
+        username: "Notify AI",
+        avatar_url: "https://api.dicebear.com/7.x/bottts/png?seed=NotifyAI&backgroundColor=8b5cf6"
+      })
     });
   } catch (err) {
     console.error("Discord webhook error:", err);
@@ -121,7 +135,7 @@ exports.handler = async (event) => {
       // 4. Generate Message via Groq
       const personality = user.personalitySelect === 'custom' ? user.personalityCustom : (user.personalitySelect || "gentle");
       const taskText = user.task || "該休息一下了";
-      const message = await generateReminderMessage(personality, taskText);
+      const message = await generateReminderMessage(personality, taskText, user.chatHistory);
 
       // 5. Send Notifications
       const channels = user.channels || {};
@@ -159,19 +173,23 @@ exports.handler = async (event) => {
         reactions: []
       };
       
-      const currentHistory = user.chatHistory || [];
-      currentHistory.push(newMsg);
-      // Keep only last 50
-      if (currentHistory.length > 50) {
-        currentHistory.splice(0, currentHistory.length - 50);
-      }
-      
       try {
+        const history = user.chatHistory || [];
+        const allMessages = [...history, newMsg];
+        
+        const reacted = allMessages.filter(m => m.reactions && m.reactions.length > 0);
+        const unreacted = allMessages.filter(m => !m.reactions || m.reactions.length === 0);
+        
+        const keptReacted = reacted.slice(-30); // Keep up to 30 reacted
+        const keptUnreacted = unreacted.slice(-5); // Keep up to 5 unreacted
+        
+        const newHistory = [...keptReacted, ...keptUnreacted].sort((a, b) => a.id.localeCompare(b.id));
+
         await docClient.send(new UpdateCommand({
           TableName: USERS_TABLE,
           Key: { userId: user.userId },
-          UpdateExpression: "SET chatHistory = :history",
-          ExpressionAttributeValues: { ":history": currentHistory }
+          UpdateExpression: "SET chatHistory = :h",
+          ExpressionAttributeValues: { ":h": newHistory }
         }));
       } catch (err) {
         console.error("Failed to update history for user", user.userId, err);

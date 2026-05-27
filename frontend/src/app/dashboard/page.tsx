@@ -86,7 +86,8 @@ export default function ChatInterface() {
     }
   }, [messages]);
 
-  const handleAddReaction = (messageId: string, emoji: string) => {
+  const handleAddReaction = async (messageId: string, emoji: string) => {
+    // 1. Optimistic update
     setMessages(messages.map(m => {
       if (m.id === messageId) {
         if (m.reactions.includes(emoji)) return m; // prevent duplicate same emoji from user
@@ -95,6 +96,26 @@ export default function ChatInterface() {
       return m;
     }));
     setActivePickerId(null);
+
+    // 2. Send to backend
+    if (user && process.env.NEXT_PUBLIC_API_URL) {
+      try {
+        await fetch(process.env.NEXT_PUBLIC_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.email}`
+          },
+          body: JSON.stringify({
+            action: "addReaction",
+            messageId,
+            emoji
+          })
+        });
+      } catch (err) {
+        console.error("Failed to add reaction:", err);
+      }
+    }
   };
 
   if (loading || !user) {
