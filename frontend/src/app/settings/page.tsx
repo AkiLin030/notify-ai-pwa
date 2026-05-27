@@ -121,7 +121,9 @@ export default function SettingsPage() {
       return "請至少設定一個提醒時間。";
     }
     for (const s of settings.schedules) {
-      if (!s.time) return "請確認所有排程時間皆已填寫。";
+      if (s.frequency !== "minute" && s.frequency !== "hour" && !s.time) {
+        return "請確認所有排程時間皆已填寫。";
+      }
     }
     if (settings.channels.discord && !settings.discordWebhook.trim()) {
       return "已勾選 Discord 通知，請填寫 Webhook URL。";
