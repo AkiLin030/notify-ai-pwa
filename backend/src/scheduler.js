@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 const webpush = require("web-push");
 
@@ -73,6 +73,7 @@ exports.handler = async (event) => {
   const date = new Date();
   date.setHours(date.getUTCHours() + 8);
   const currentHour = date.getHours();
+  const currentMinute = date.getMinutes();
 
   try {
     // 1. Scan all users (In production, use GSI or query if dataset is huge)
@@ -87,9 +88,28 @@ exports.handler = async (event) => {
         continue;
       }
 
-      // 3. Check Reminder Times (Match hour)
-      const times = user.reminderTimes || [];
-      const shouldRemind = times.some(t => parseInt(t.split(":")[0]) === currentHour);
+      // 3. Check Reminder Times (Match specific frequencies)
+      const schedules = user.schedules || [];
+      const shouldRemind = schedules.some(s => {
+        if (!s.frequency) return false;
+        if (s.frequency === "minute") return true;
+        if (s.frequency === "hour") return currentMinute === 0;
+        if (!s.time) return false;
+        
+        if (s.frequency === "once") {
+          const d = new Date(s.time);
+          return d.getHours() === currentHour && d.getMinutes() === currentMinute && d.getDate() === date.getDate();
+        }
+        
+        const [h, m] = s.time.split(":");
+        const hourMatch = parseInt(h) === currentHour && parseInt(m) === currentMinute;
+        
+        if (s.frequency === "day") return hourMatch;
+        if (s.frequency === "week") return hourMatch && date.getDay() === 1;
+        if (s.frequency === "month") return hourMatch && date.getDate() === 1;
+        
+        return false;
+      });
       
       if (!shouldRemind) continue;
 
@@ -120,6 +140,34 @@ exports.handler = async (event) => {
         } catch (err) {
           console.error("WebPush error:", err);
         }
+      }
+
+      // 6. Save Chat History
+      const timestamp = `今天 ${String(currentHour).padStart(2, "0")}:${String(currentMinute).padStart(2, "0")}`;
+      const newMsg = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        sender: "ai",
+        content: message,
+        timestamp: timestamp,
+        reactions: []
+      };
+      
+      const currentHistory = user.chatHistory || [];
+      currentHistory.push(newMsg);
+      // Keep only last 50
+      if (currentHistory.length > 50) {
+        currentHistory.splice(0, currentHistory.length - 50);
+      }
+      
+      try {
+        await docClient.send(new UpdateCommand({
+          TableName: USERS_TABLE,
+          Key: { userId: user.userId },
+          UpdateExpression: "SET chatHistory = :history",
+          ExpressionAttributeValues: { ":history": currentHistory }
+        }));
+      } catch (err) {
+        console.error("Failed to update history for user", user.userId, err);
       }
     }
 
