@@ -1,7 +1,7 @@
 {
-  "name": "AI 提醒 PWA",
-  "short_name": "AI Reminder",
-  "description": "具備各式個性的 AI 提醒器 PWA",
+  "name": "notify AI",
+  "short_name": "notify AI",
+  "description": "具備各式個性的 AI 提醒器",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
