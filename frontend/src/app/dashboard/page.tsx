@@ -55,7 +55,14 @@ export default function ChatInterface() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [activePickerId, setActivePickerId] = useState<string | null>(null);
+  const [showBanner, setShowBanner] = useState(false);
   const chatAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      setShowBanner(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -139,6 +146,14 @@ export default function ChatInterface() {
           </div>
         </div>
       </header>
+
+      {/* Permission Banner */}
+      {showBanner && (
+        <div className={styles.permissionBanner}>
+          <span>🔔 想要在離開網頁時也收到 AI 的貼心提醒嗎？</span>
+          <button className={styles.permissionBtn} onClick={() => router.push("/settings")}>前往開啟</button>
+        </div>
+      )}
 
       {/* Chat Area */}
       <main className={styles.chatArea} ref={chatAreaRef}>

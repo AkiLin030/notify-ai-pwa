@@ -232,3 +232,42 @@
   height: 100vh;
   color: var(--text-secondary);
 }
+
+.permissionBanner {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+}
+
+.permissionBanner span {
+  flex: 1;
+}
+
+.permissionBtn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+.permissionBtn:hover {
+  background: white;
+  color: var(--accent-primary);
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
