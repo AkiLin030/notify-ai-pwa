@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/Button";
 import styles from "./settings.module.css";
-import { Bell, Clock, Settings, MessageSquare, VolumeX, ListTodo, ArrowLeft, Trash2, Moon, Sun, Palette, LogOut } from "lucide-react";
+import { Bell, Clock, Settings, MessageSquare, VolumeX, ListTodo, ArrowLeft, Trash2, Moon, Sun, Palette, LogOut, HelpCircle, X } from "lucide-react";
 
 type Schedule = {
   frequency: "minute" | "hour" | "day" | "week" | "month" | "once";
@@ -69,6 +69,7 @@ export default function SettingsPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>("");
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
@@ -513,13 +514,22 @@ export default function SettingsPage() {
                   />
                   Email
                 </label>
-                <label className={styles.checkboxLabel}>
-                  <input 
-                    type="checkbox" 
-                    checked={settings.channels.webpush}
-                    onChange={(e) => handleWebPushToggle(e.target.checked)}
-                  />
-                  系統推播 (Web Push)
+                <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={settings.channels.webpush}
+                      onChange={(e) => handleWebPushToggle(e.target.checked)}
+                    />
+                    系統推播 (Web Push)
+                  </div>
+                  <button 
+                    onClick={() => setShowHelpModal(true)} 
+                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.2rem' }}
+                    title="沒有收到通知嗎？點此排查"
+                  >
+                    <HelpCircle size={16} /> <span style={{ fontSize: '0.8rem', marginLeft: '0.2rem' }}>收不到通知?</span>
+                  </button>
                 </label>
                 <label className={styles.checkboxLabel}>
                   <input 
@@ -573,6 +583,41 @@ export default function SettingsPage() {
           </Button>
         </div>
       </main>
+
+      {/* Help Modal */}
+      {showHelpModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', 
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: 'var(--surface-light)', padding: '2rem', borderRadius: '1rem', 
+            maxWidth: '90%', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            position: 'relative'
+          }}>
+            <button 
+              onClick={() => setShowHelpModal(false)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            >
+              <X size={20} />
+            </button>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+              <HelpCircle size={20} className="text-gradient" /> 為什麼收不到通知？
+            </h3>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <p style={{ marginBottom: '1rem' }}><strong>👉 裝置互相覆蓋（最常見）</strong><br/>目前系統只會綁定「最後一次按下儲存」的裝置。如果您希望手機收到通知，請在<b>手機上</b>進來這個頁面，把系統推播重新打開並按下最下方的儲存！</p>
+              <p style={{ marginBottom: '1rem' }}><strong>👉 小米 / Android 省電模式</strong><br/>小米等手機會將瀏覽器的背景執行阻擋。請到手機的「應用程式管理」中，把 Chrome (或您安裝用的瀏覽器) 的省電策略設為<b>「無限制」</b>並允許<b>「自啟動」</b>。</p>
+              <p style={{ marginBottom: 0 }}><strong>👉 iOS (iPhone) 限制</strong><br/>必須更新至 iOS 16.4 以上，且必須透過 Safari 的<b>「加入主畫面」</b>將本網站安裝成 APP 後，從桌面開啟才能正常接收推播。</p>
+            </div>
+            <Button style={{ width: '100%', marginTop: '1.5rem' }} onClick={() => setShowHelpModal(false)}>
+              了解！
+            </Button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
