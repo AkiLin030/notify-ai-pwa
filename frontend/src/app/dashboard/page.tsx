@@ -122,7 +122,9 @@ export default function ChatInterface() {
     // 1. Optimistic update
     setMessages(messages.map(m => {
       if (m.id === messageId) {
-        if (m.reactions.includes(emoji)) return m; // prevent duplicate same emoji from user
+        if (m.reactions.includes(emoji)) {
+          return { ...m, reactions: m.reactions.filter(e => e !== emoji) };
+        }
         return { ...m, reactions: [...m.reactions, emoji] };
       }
       return m;

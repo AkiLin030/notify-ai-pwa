@@ -51,7 +51,11 @@ exports.handler = async (event) => {
           const newHistory = Item.chatHistory.map(msg => {
             if (msg.id === messageId) {
               if (!msg.reactions) msg.reactions = [];
-              if (!msg.reactions.includes(emoji)) msg.reactions.push(emoji);
+              if (msg.reactions.includes(emoji)) {
+                msg.reactions = msg.reactions.filter(e => e !== emoji);
+              } else {
+                msg.reactions.push(emoji);
+              }
             }
             return msg;
           });
@@ -62,7 +66,7 @@ exports.handler = async (event) => {
             ExpressionAttributeValues: { ":h": newHistory }
           }));
         }
-        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: "Reaction added" }) };
+        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: "Reaction toggled" }) };
       }
       
       const item = { userId, ...data };

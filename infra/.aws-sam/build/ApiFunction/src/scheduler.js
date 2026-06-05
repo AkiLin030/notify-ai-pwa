@@ -54,16 +54,16 @@ async function generateReminderMessage(personality, taskText, chatHistory = []) 
   }
 }
 
-async function sendDiscord(webhookUrl, message) {
-  if (!webhookUrl) return;
+async function sendDiscord(user, message) {
+  if (!user.discordWebhook) return;
   try {
-    await fetch(webhookUrl, {
+    await fetch(user.discordWebhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         content: message,
-        username: "Notify AI",
-        avatar_url: "https://api.dicebear.com/7.x/bottts/png?seed=NotifyAI&backgroundColor=8b5cf6"
+        username: user.discordBotName || "Notify AI",
+        avatar_url: user.discordAvatarUrl || "https://api.dicebear.com/7.x/bottts/png?seed=NotifyAI&backgroundColor=8b5cf6"
       })
     });
   } catch (err) {
@@ -151,7 +151,7 @@ exports.handler = async (event) => {
 
       // Discord
       if (channels.discord && user.discordWebhook) {
-        await sendDiscord(user.discordWebhook, message);
+        await sendDiscord(user, message);
       }
 
       // Web Push

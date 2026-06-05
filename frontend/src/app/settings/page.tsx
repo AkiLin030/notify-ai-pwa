@@ -22,6 +22,8 @@ type SettingsType = {
   quietHours: { start: string; end: string };
   channels: { email: boolean; discord: boolean; webpush: boolean };
   discordWebhook: string;
+  discordBotName?: string;
+  discordAvatarUrl?: string;
   webpushSubscription?: any;
 };
 
@@ -61,6 +63,8 @@ export default function SettingsPage() {
     quietHours: { start: "22:00", end: "07:00" },
     channels: { email: true, discord: false, webpush: false },
     discordWebhook: "",
+    discordBotName: "",
+    discordAvatarUrl: "",
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -537,6 +541,26 @@ export default function SettingsPage() {
                     value={settings.discordWebhook}
                     onChange={(e) => setSettings({ ...settings, discordWebhook: e.target.value })}
                   />
+                  <div style={{ marginTop: '1rem' }}>
+                    <label>自訂機器人名稱 (選填)</label>
+                    <input 
+                      type="text" 
+                      className={styles.input} 
+                      placeholder="預設：Notify AI"
+                      value={settings.discordBotName || ""}
+                      onChange={(e) => setSettings({ ...settings, discordBotName: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ marginTop: '1rem' }}>
+                    <label>自訂機器人頭貼網址 (選填)</label>
+                    <input 
+                      type="url" 
+                      className={styles.input} 
+                      placeholder="https://example.com/avatar.png"
+                      value={settings.discordAvatarUrl || ""}
+                      onChange={(e) => setSettings({ ...settings, discordAvatarUrl: e.target.value })}
+                    />
+                  </div>
                 </div>
               )}
             </div>
