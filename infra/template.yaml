@@ -4,13 +4,13 @@ Description: AI Reminder PWA - Full Stack Infrastructure
 
 Parameters:
   VapidPublicKey:
-    Type: String
+    Type: AWS::SSM::Parameter::Value<String>
     Description: VAPID Public Key
   VapidPrivateKey:
-    Type: String
+    Type: AWS::SSM::Parameter::Value<String>
     Description: VAPID Private Key
   GroqApiKey:
-    Type: String
+    Type: AWS::SSM::Parameter::Value<String>
     Description: Groq API Key
 
 Resources:
@@ -57,7 +57,10 @@ Resources:
             TableName: !Ref UsersTable
         - Statement:
             - Effect: Allow
-              Action: sns:Subscribe
+              Action: 
+                - sns:Subscribe
+                - sns:Unsubscribe
+                - sns:ListSubscriptionsByTopic
               Resource: !Ref EmailNotificationTopic
       Events:
         ProxyApi:

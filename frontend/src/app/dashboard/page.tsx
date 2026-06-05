@@ -14,13 +14,38 @@ type Message = {
   reactions: string[];
 };
 
-// Helper to generate dynamic, non-hardcoded timestamps
 const getFormattedTime = (minutesOffset = 0) => {
   const d = new Date();
   d.setMinutes(d.getMinutes() - minutesOffset);
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `今天 ${hours}:${minutes}`;
+  return d.toISOString();
+};
+
+const formatMessageTime = (timestampStr: string) => {
+  if (!timestampStr) return "";
+  // Check if it's a legacy timestamp (e.g., "今天 20:00")
+  if (timestampStr.startsWith("今天") || !timestampStr.includes("T")) {
+    return timestampStr;
+  }
+  
+  const date = new Date(timestampStr);
+  if (isNaN(date.getTime())) return timestampStr;
+
+  const now = new Date();
+  const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear();
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  if (isToday) return `今天 ${hours}:${minutes}`;
+  if (isYesterday) return `昨天 ${hours}:${minutes}`;
+  
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${month}/${day} ${hours}:${minutes}`;
 };
 
 // Initial Mock Messages
@@ -175,7 +200,7 @@ export default function ChatInterface() {
                     ))}
                   </div>
                 )}
-                <span className={styles.timestamp}>{msg.timestamp}</span>
+                <span className={styles.timestamp}>{formatMessageTime(msg.timestamp)}</span>
               </div>
 
               {/* Reaction Plus Button */}

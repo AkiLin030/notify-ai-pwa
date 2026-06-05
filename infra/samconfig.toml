@@ -1,9 +1,9 @@
 version = 0.1
 
 [default.deploy.parameters]
-stack_name = "sam-app"
+stack_name = "AI-Reminder-Backend"
 resolve_s3 = true
-s3_prefix = "sam-app"
+s3_prefix = "AI-Reminder-Backend"
 region = "ap-northeast-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
