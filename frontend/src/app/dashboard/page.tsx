@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import styles from "./chat.module.css";
-import { Settings, Bell, Bot, Plus } from "lucide-react";
+import { Settings, Bell, Bot, Plus, Loader2 } from "lucide-react";
 
 type Message = {
   id: string;
@@ -75,17 +75,36 @@ const INITIAL_MESSAGES: Message[] = [
 
 const EMOJI_REPLIES = ["👍", "❤️", "😂", "😡", "🙏", "💧"];
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function ChatInterface() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [activePickerId, setActivePickerId] = useState<string | null>(null);
-  const [showBanner, setShowBanner] = useState(false);
+  const [fullSettings, setFullSettings] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
   const chatAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      setShowBanner(true);
+    // Check if user has seen onboarding
+    const hasSeen = localStorage.getItem('notifyAI_hasSeenOnboarding');
+    if (!hasSeen) {
+      setShowOnboarding(true);
     }
   }, []);
 
@@ -103,8 +122,11 @@ export default function ChatInterface() {
       })
       .then(res => res.json())
       .then(data => {
-        if (data && data.chatHistory) {
-          setMessages([...INITIAL_MESSAGES, ...data.chatHistory]);
+        if (data) {
+          setFullSettings(data);
+          if (data.chatHistory) {
+            setMessages([...INITIAL_MESSAGES, ...data.chatHistory]);
+          }
         }
       })
       .catch(console.error);
@@ -117,6 +139,63 @@ export default function ChatInterface() {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleEnablePush = async () => {
+    try {
+      setIsEnablingPush(true);
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("您拒絕了推播權限。如果想要開啟，請去瀏覽器設定中解鎖喔！");
+        skipOnboarding();
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string),
+      });
+
+      // Save to backend with the full settings object
+      if (user && process.env.NEXT_PUBLIC_API_URL) {
+        const updatedSettings = {
+          ...fullSettings,
+          channels: { ...(fullSettings?.channels || {}), webpush: true },
+          webpushSubscription: subscription
+        };
+
+        const res = await fetch(process.env.NEXT_PUBLIC_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.email}`
+          },
+          body: JSON.stringify(updatedSettings)
+        });
+
+        if (!res.ok) throw new Error("儲存失敗");
+        setFullSettings(updatedSettings);
+      }
+
+      // Success
+      localStorage.setItem('notifyAI_hasSeenOnboarding', 'true');
+      setShowOnboarding(false);
+      alert("太棒了！推播設定完成 🎉");
+    } catch (err) {
+      console.error(err);
+      alert("設定推播時發生錯誤，請稍後再試。");
+    } finally {
+      setIsEnablingPush(false);
+    }
+  };
+
+  const skipOnboarding = () => {
+    alert("沒問題！如果你稍後想開啟推播，可以點擊右上角到「設定」頁面，在最下方的『通知方式』勾選系統推播喔！");
+    localStorage.setItem('notifyAI_hasSeenOnboarding', 'true');
+    setShowOnboarding(false);
+  };
 
   const handleAddReaction = async (messageId: string, emoji: string) => {
     // 1. Optimistic update
@@ -174,11 +253,35 @@ export default function ChatInterface() {
         </div>
       </header>
 
-      {/* Permission Banner */}
-      {showBanner && (
-        <div className={styles.permissionBanner}>
-          <span>🔔 想要在離開網頁時也收到 AI 的貼心提醒嗎？</span>
-          <button className={styles.permissionBtn} onClick={() => router.push("/settings")}>前往開啟</button>
+      {/* Onboarding Overlay Modal */}
+      {showOnboarding && (
+        <div className={styles.onboardingOverlay}>
+          <div className={styles.onboardingModal}>
+            <div className={styles.onboardingTitle}>
+              <Bell size={28} className="text-gradient" />
+              <span>歡迎使用 Notify AI</span>
+            </div>
+            <p className={styles.onboardingText}>
+              我是您的專屬 AI 助理！為了能在您關閉網頁時也能準時提醒您，
+              請幫我開啟<strong>系統推播</strong>權限。
+            </p>
+            <button 
+              className={styles.onboardingBtn} 
+              onClick={handleEnablePush}
+              disabled={isEnablingPush}
+            >
+              {isEnablingPush ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <Loader2 size={18} className="animate-spin" /> 開啟中...
+                </span>
+              ) : (
+                "🛎️ 一鍵開啟系統推播"
+              )}
+            </button>
+            <button className={styles.onboardingSkipBtn} onClick={skipOnboarding}>
+              先不要，跳過
+            </button>
+          </div>
         </div>
       )}
 
