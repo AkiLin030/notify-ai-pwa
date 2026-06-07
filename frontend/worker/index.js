@@ -12,7 +12,6 @@ self.addEventListener('push', function(event) {
   const options = {
     body: data.body || "您有一個新的提醒！",
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
     data: {
       url: data.url || self.location.origin
     }

@@ -131,37 +131,55 @@ exports.handler = async (event) => {
       });
       
       if (!shouldRemind) continue;
+      
+      const traceId = `${user.userId}-${Date.now().toString().slice(-6)}`;
+      console.log(`[Trace: ${traceId}] 1. 觸發排程，任務: ${user.task}`);
 
       // 4. Generate Message via Groq
       const personality = user.personalitySelect === 'custom' ? user.personalityCustom : (user.personalitySelect || "gentle");
       const taskText = user.task || "該休息一下了";
+      console.log(`[Trace: ${traceId}] 2. 準備呼叫 AI API (Groq)...`);
       const message = await generateReminderMessage(personality, taskText, user.chatHistory);
+      console.log(`[Trace: ${traceId}] 3. AI 訊息產生完成: ${message.substring(0, 30)}...`);
 
       // 5. Send Notifications
       const channels = user.channels || {};
       
       // Email (SNS)
       if (channels.email && SNS_TOPIC_ARN) {
-        await snsClient.send(new PublishCommand({
-          TopicArn: SNS_TOPIC_ARN,
-          Message: message,
-          Subject: "AI 提醒助手"
-        }));
+        try {
+          await snsClient.send(new PublishCommand({
+            TopicArn: SNS_TOPIC_ARN,
+            Message: message,
+            Subject: "AI 提醒助手"
+          }));
+          console.log(`[Trace: ${traceId}] 4a. Email(SNS) 發送成功`);
+        } catch(err) {
+          console.error(`[Trace: ${traceId}] 4a. Email(SNS) 發送失敗:`, err);
+        }
       }
 
       // Discord
       if (channels.discord && user.discordWebhook) {
-        await sendDiscord(user, message);
+        try {
+          await sendDiscord(user, message);
+          console.log(`[Trace: ${traceId}] 4b. Discord 發送成功`);
+        } catch(err) {
+          console.error(`[Trace: ${traceId}] 4b. Discord 發送失敗:`, err);
+        }
       }
 
       // Web Push
       if (channels.webpush && user.webpushSubscription) {
         try {
           await webpush.sendNotification(user.webpushSubscription, JSON.stringify({ title: "AI 提醒", body: message }));
+          console.log(`[Trace: ${traceId}] 4c. Web Push 發送成功`);
         } catch (err) {
-          console.error("WebPush error:", err);
+          console.error(`[Trace: ${traceId}] 4c. Web Push 發送失敗:`, err);
         }
       }
+      
+      console.log(`[Trace: ${traceId}] 5. 本次任務結束`);
 
       // 6. Save Chat History
       const timestamp = new Date().toISOString();
