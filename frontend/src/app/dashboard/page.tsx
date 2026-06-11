@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import styles from "./chat.module.css";
-import { Settings, Bell, Bot, Plus, Loader2 } from "lucide-react";
+import { Settings, Bell, Bot, Plus, Loader2, HelpCircle } from "lucide-react";
 
 type Message = {
   id: string;
