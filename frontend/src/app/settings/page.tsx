@@ -530,6 +530,12 @@ export default function SettingsPage() {
                   >
                     <HelpCircle size={16} /> <span style={{ fontSize: '0.8rem', marginLeft: '0.2rem' }}>收不到通知?</span>
                   </button>
+                  <button 
+                    onClick={() => alert("【iPhone 用戶請注意】\nApple 規定必須先將網站「加入主畫面」才能開啟通知！\n\n1. 請點擊 Safari 下方的「分享」按鈕 ⬆️\n2. 選擇「加入主畫面」\n3. 從桌面的 APP 圖示重新開啟本程式\n4. 再次嘗試開啟系統推播即可！")} 
+                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '0.2rem', marginTop: '-0.2rem' }}
+                  >
+                    <HelpCircle size={14} /> <span style={{ fontSize: '0.75rem', marginLeft: '0.2rem' }}>iPhone 無法開啟?</span>
+                  </button>
                 </label>
                 <label className={styles.checkboxLabel}>
                   <input 

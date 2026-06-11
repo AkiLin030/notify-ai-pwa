@@ -143,6 +143,13 @@ export default function ChatInterface() {
   const handleEnablePush = async () => {
     try {
       setIsEnablingPush(true);
+      
+      if (!('Notification' in window)) {
+        alert("⚠️ 您的瀏覽器 (或 iOS Safari) 目前不支援推播。\n\n【iPhone 用戶請注意】\nApple 規定必須先將網站「加入主畫面」才能開啟通知！請點擊 Safari 下方的「分享」按鈕 ⬆️，選擇「加入主畫面」，然後從桌面的 APP 圖示開啟本程式即可！");
+        setIsEnablingPush(false);
+        return;
+      }
+
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         alert("您拒絕了推播權限。如果想要開啟，請去瀏覽器設定中解鎖喔！");
@@ -278,9 +285,17 @@ export default function ChatInterface() {
                 "🛎️ 一鍵開啟系統推播"
               )}
             </button>
-            <button className={styles.onboardingSkipBtn} onClick={skipOnboarding}>
-              先不要，跳過
-            </button>
+            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button 
+                onClick={() => alert("【iPhone 用戶請注意】\nApple 規定必須先將網站「加入主畫面」才能開啟通知！\n\n1. 請點擊 Safari 下方的「分享」按鈕 ⬆️\n2. 選擇「加入主畫面」\n3. 從桌面的 APP 圖示重新開啟本程式\n4. 再次點擊一鍵開啟系統推播即可！")} 
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}
+              >
+                <HelpCircle size={14} style={{ marginRight: '0.3rem' }} /> iPhone 點擊失敗？
+              </button>
+              <button className={styles.onboardingSkipBtn} onClick={skipOnboarding} style={{ marginTop: '0.5rem' }}>
+                先不要，跳過
+              </button>
+            </div>
           </div>
         </div>
       )}
