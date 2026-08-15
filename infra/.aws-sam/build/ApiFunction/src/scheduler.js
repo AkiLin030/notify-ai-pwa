@@ -35,7 +35,7 @@ async function generateReminderMessage(personality, taskText, chatHistory = []) 
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "qwen-3.6-27b", // Migrated from deprecated llama-3.3-70b-versatile
+        model: "openai/gpt-oss-120b", // Migrated from deprecated llama-3.3-70b-versatile
         messages: [
           { role: "system", content: `你是一個專屬提醒管家。你的個性是：${personality}。你的任務是提醒使用者：${taskText || "該休息一下或確認代辦事項了"}。\n\n${examplesPrompt}請用這個個性，寫一段生動的提醒訊息（約 1~3 句話，務必使用繁體中文）。請每次都發揮創意，用不同的語氣、情境和詞彙來表達，絕對不要每次都說一樣的話。` }
         ],
