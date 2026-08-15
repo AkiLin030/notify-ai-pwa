@@ -35,7 +35,7 @@ async function generateReminderMessage(personality, taskText, chatHistory = []) 
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile", // Use active Groq model
+        model: "qwen-3.6-27b", // Migrated from deprecated llama-3.3-70b-versatile
         messages: [
           { role: "system", content: `你是一個專屬提醒管家。你的個性是：${personality}。你的任務是提醒使用者：${taskText || "該休息一下或確認代辦事項了"}。\n\n${examplesPrompt}請用這個個性，寫一段生動的提醒訊息（約 1~3 句話，務必使用繁體中文）。請每次都發揮創意，用不同的語氣、情境和詞彙來表達，絕對不要每次都說一樣的話。` }
         ],
@@ -44,13 +44,13 @@ async function generateReminderMessage(personality, taskText, chatHistory = []) 
     });
     const data = await response.json();
     if (data.error) {
-       console.error("Groq API error response:", data.error);
-       return `[${personality} mode] ${taskText || "該休息一下了！"}`;
+      console.error("Groq API error response:", data.error);
+      return `[系統提醒] ${taskText || "該休息一下了！"}`;
     }
     return data.choices[0].message.content;
   } catch (err) {
     console.error("Groq API error:", err);
-    return `[${personality} mode] ${taskText || "該休息一下了！"}`;
+    return `[系統提醒] ${taskText || "該休息一下了！"}`;
   }
 }
 
@@ -60,7 +60,7 @@ async function sendDiscord(user, message) {
     await fetch(user.discordWebhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         content: message,
         username: user.discordBotName || "Notify AI",
         avatar_url: user.discordAvatarUrl || "https://api.dicebear.com/7.x/bottts/png?seed=NotifyAI&backgroundColor=8b5cf6"
@@ -75,7 +75,7 @@ function isQuietHour(currentHour, start, end) {
   if (!start || !end) return false;
   const startHour = parseInt(start.split(":")[0]);
   const endHour = parseInt(end.split(":")[0]);
-  
+
   if (startHour <= endHour) {
     return currentHour >= startHour && currentHour < endHour;
   } else {
@@ -86,7 +86,7 @@ function isQuietHour(currentHour, start, end) {
 
 exports.handler = async (event) => {
   console.log("Scheduler triggered");
-  
+
   // Get current hour in GMT+8 (Taiwan time)
   const date = new Date();
   date.setHours(date.getUTCHours() + 8);
@@ -96,7 +96,7 @@ exports.handler = async (event) => {
   try {
     // 1. Scan all users (In production, use GSI or query if dataset is huge)
     const { Items } = await docClient.send(new ScanCommand({ TableName: USERS_TABLE }));
-    
+
     if (!Items || Items.length === 0) return { statusCode: 200, body: "No users" };
 
     for (const user of Items) {
@@ -114,24 +114,24 @@ exports.handler = async (event) => {
         if (s.frequency === "minute") return true;
         if (s.frequency === "hour") return currentMinute === 0;
         if (!s.time) return false;
-        
+
         if (s.frequency === "once") {
           const d = new Date(s.time);
           return d.getHours() === currentHour && d.getMinutes() === currentMinute && d.getDate() === date.getDate();
         }
-        
+
         const [h, m] = s.time.split(":");
         const hourMatch = parseInt(h) === currentHour && parseInt(m) === currentMinute;
-        
+
         if (s.frequency === "day") return hourMatch;
         if (s.frequency === "week") return hourMatch && date.getDay() === 1;
         if (s.frequency === "month") return hourMatch && date.getDate() === 1;
-        
+
         return false;
       });
-      
+
       if (!shouldRemind) continue;
-      
+
       const traceId = `${user.userId}-${Date.now().toString().slice(-6)}`;
       console.log(`[Trace: ${traceId}] 1. 觸發排程，任務: ${user.task}`);
 
@@ -144,7 +144,7 @@ exports.handler = async (event) => {
 
       // 5. Send Notifications
       const channels = user.channels || {};
-      
+
       // Email (SNS)
       if (channels.email && SNS_TOPIC_ARN) {
         try {
@@ -154,7 +154,7 @@ exports.handler = async (event) => {
             Subject: "AI 提醒助手"
           }));
           console.log(`[Trace: ${traceId}] 4a. Email(SNS) 發送成功`);
-        } catch(err) {
+        } catch (err) {
           console.error(`[Trace: ${traceId}] 4a. Email(SNS) 發送失敗:`, err);
         }
       }
@@ -164,7 +164,7 @@ exports.handler = async (event) => {
         try {
           await sendDiscord(user, message);
           console.log(`[Trace: ${traceId}] 4b. Discord 發送成功`);
-        } catch(err) {
+        } catch (err) {
           console.error(`[Trace: ${traceId}] 4b. Discord 發送失敗:`, err);
         }
       }
@@ -178,7 +178,7 @@ exports.handler = async (event) => {
           console.error(`[Trace: ${traceId}] 4c. Web Push 發送失敗:`, err);
         }
       }
-      
+
       console.log(`[Trace: ${traceId}] 5. 本次任務結束`);
 
       // 6. Save Chat History
@@ -190,17 +190,17 @@ exports.handler = async (event) => {
         timestamp: timestamp,
         reactions: []
       };
-      
+
       try {
         const history = user.chatHistory || [];
         const allMessages = [...history, newMsg];
-        
+
         const reacted = allMessages.filter(m => m.reactions && m.reactions.length > 0);
         const unreacted = allMessages.filter(m => !m.reactions || m.reactions.length === 0);
-        
+
         const keptReacted = reacted.slice(-30); // Keep up to 30 reacted
         const keptUnreacted = unreacted.slice(-5); // Keep up to 5 unreacted
-        
+
         const newHistory = [...keptReacted, ...keptUnreacted].sort((a, b) => a.id.localeCompare(b.id));
 
         await docClient.send(new UpdateCommand({
