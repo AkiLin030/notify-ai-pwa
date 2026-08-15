@@ -101,9 +101,11 @@ exports.handler = async (event) => {
 
     for (const user of Items) {
       // 2. Check Quiet Hours
-      const quiet = user.quietHours || { start: "22:00", end: "07:00" };
-      if (isQuietHour(currentHour, quiet.start, quiet.end)) {
-        continue;
+      if (user.quietHoursEnabled !== false) {
+        const quiet = user.quietHours || { start: "22:00", end: "07:00" };
+        if (isQuietHour(currentHour, quiet.start, quiet.end)) {
+          continue;
+        }
       }
 
       // 3. Check Reminder Times (Match specific frequencies)
